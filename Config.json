@@ -1,0 +1,18 @@
+{
+	"Redis":{
+		"Url" : "xxx:6379",
+		"Db" :"15",
+		"Passowrd" : ""
+	},
+	"JwtSettings" : {
+		"SignKey" : "xxx",
+		"ExpireHour" : 168
+	}, 
+	"DatabaseConnectInfo":{
+		"Url":"xxx.ap-northeast-1.rds.amazonaws.com",
+		"Port":"3306",
+		"UserName":"xxx",
+		"Password":"xxx",
+		"Database" : "xxx"
+	}
+}
