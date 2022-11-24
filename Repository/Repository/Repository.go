@@ -9,27 +9,41 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-//sqlx
-// func GetAccountPassword(accountName string) (hashPassword *string) {
-// 	db := MySqlHelper.GetSqlxInstance()
-// 	defer db.Close()
+func GetBlocksByLimit(limit int) (result []GormModel.Block) {
+	db := MySqlGormHelper.GetGormInstance()
+	db.Order(fmt.Sprintf("%s %s", GormModel.ColumnNameBlocksNumber, MySqlGormHelper.DescString)).Limit(limit).Find(&result)
+	return
+}
 
-// 	err := db.Get(&hashPassword, `
-// 		SELECT password
-// 		FROM accounts
-// 		WHERE enable = 1 AND name = ?`, accountName)
+func GetBlocksByNumber(number int64) (result GormModel.Block) {
+	db := MySqlGormHelper.GetGormInstance()
+	db.Find(&result, number)
+	return
+}
 
-// 	if err != nil && err.Error() != MySqlHelper.NoRowsErrorMessage {
-// 		panic(err)
-// 	}
+func GetBlockTransactionHashes(blockNumber int64) (result []string) {
+	db := MySqlGormHelper.GetGormInstance()
+	db.Model(&GormModel.Transaction{}).Where(fmt.Sprintf("%s=?", GormModel.ColumnNameTransactionsBlockNumber), blockNumber).
+		Pluck(GormModel.ColumnNameTransactionsHash, &result)
+	return
+}
 
-// 	return
-// }
+func GetTransactionByHash(transactionHash string) (result GormModel.Transaction) {
+	db := MySqlGormHelper.GetGormInstance()
+	db.Find(&result, GormModel.ColumnNameTransactionsHash+"=?", transactionHash).Take(&result)
+	return
+}
+
+func GetTransactionsReceiptLogs(transactionHash string) (result []GormModel.ReceiptLog) {
+	db := MySqlGormHelper.GetGormInstance()
+	db.Order(fmt.Sprintf("`%s`", GormModel.ColumnNameReceiptLogsIndex)).Find(&result, GormModel.ColumnNameReceiptLogsTransactionsHash+"=?", transactionHash)
+	return
+}
 
 func GetDbMaxBlockNumber() int64 {
 	var result []int64
 	db := MySqlGormHelper.GetGormInstance()
-	db.Table(GormModel.TableNameBlocks).
+	db.Model(&GormModel.Block{}).
 		Select(fmt.Sprintf("max(%s) as %s", GormModel.ColumnNameBlocksNumber, GormModel.ColumnNameBlocksNumber)).
 		Pluck(GormModel.ColumnNameBlocksNumber, &result)
 	if len(result) > 0 {
@@ -63,7 +77,7 @@ func GetAccountPassword(accountName string) (hashPassword *string) {
 
 	db := MySqlGormHelper.GetGormInstance()
 	var account GormModel.Account
-	tx := db.Take(&account, "name=?", accountName)
+	tx := db.Take(&account, GormModel.ColumnNameAccountsName+"=?", accountName)
 
 	if tx.RowsAffected == 1 {
 		hashPassword = &account.Password
@@ -72,3 +86,20 @@ func GetAccountPassword(accountName string) (hashPassword *string) {
 	}
 	return
 }
+
+//sqlx
+// func GetAccountPassword(accountName string) (hashPassword *string) {
+// 	db := MySqlHelper.GetSqlxInstance()
+// 	defer db.Close()
+
+// 	err := db.Get(&hashPassword, `
+// 		SELECT password
+// 		FROM accounts
+// 		WHERE enable = 1 AND name = ?`, accountName)
+
+// 	if err != nil && err.Error() != MySqlHelper.NoRowsErrorMessage {
+// 		panic(err)
+// 	}
+
+// 	return
+// }

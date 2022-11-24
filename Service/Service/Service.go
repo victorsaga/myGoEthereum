@@ -27,6 +27,59 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+func GetBlocksByLimit(limit int) (response CommonModel.ApiResponseWithData) {
+	data := Repository.GetBlocksByLimit(limit)
+	dbNumber := Repository.GetDbMaxBlockNumber()
+	unStableNumber := dbNumber - ConfigHelper.GetInt64("UnstableN")
+
+	var result []GormModel.BlockResponseData
+	linq.From(data).SelectT(func(v GormModel.Block) GormModel.BlockResponseData {
+		return GormModel.BlockResponseData{
+			Block:  v,
+			Stable: isStableBlock(v.Number, nil, &unStableNumber), //unStableNumber在loop外算好較省效能
+		}
+	}).ToSlice(&result)
+
+	response.Data = GormModel.BlocksResponse{Blocks: result}
+	return
+}
+
+func GetBlockTransactionHashes(blockNumber int64) (response CommonModel.ApiResponseWithData) {
+	block := Repository.GetBlocksByNumber(blockNumber)
+	transactionsHash := Repository.GetBlockTransactionHashes(blockNumber)
+	result := GormModel.BlockTransactionsResponse{}
+	result.Transactions = transactionsHash
+	result.Stable = isStableBlock(block.Number, nil, nil)
+	result.Block = block
+	response.Data = result
+	return
+}
+
+func GetTransactionsReceiptLogs(transactionHash string) (response CommonModel.ApiResponseWithData) {
+	transaction := Repository.GetTransactionByHash(transactionHash)
+	logs := Repository.GetTransactionsReceiptLogs(transactionHash)
+	result := GormModel.TransactionReceiptLogsResponse{}
+	result.Logs = logs
+	result.Transaction = transaction
+	response.Data = result
+	return
+}
+
+func isStableBlock(number int64, dbNumber, unStableNumber *int64) bool {
+	if unStableNumber == nil {
+		if dbNumber == nil {
+			dbNumber = &[]int64{Repository.GetDbMaxBlockNumber()}[0]
+		}
+		unStableNumber = &[]int64{*dbNumber - ConfigHelper.GetInt64("UnstableN")}[0]
+	}
+
+	if number > *unStableNumber {
+		return false
+	} else {
+		return true
+	}
+}
+
 func GetNewBlocks() (response CommonModel.ApiResponseWithData) {
 	dbNumber := Repository.GetDbMaxBlockNumber()
 	begin := dbNumber - ConfigHelper.GetInt64("UnstableN")

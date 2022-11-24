@@ -27,11 +27,19 @@ func main() {
 	})
 
 	//不用verifyJwtToken的路由
+	root := g.Group("/")
+	{
+		root.GET("/blocks", Controller.GetBlocksByLimit)
+		root.GET("/blocks/:id", Controller.GetBlockTransactionHashes)
+		root.GET("/transaction/:txHash", Controller.GetTransactionsReceiptLogs)
+	}
+
 	api := g.Group("/api")
 	{
-		api.POST("/login", Controller.Login)
+
 		api.POST("/initialDbData", Controller.InitialDbData)
 		api.POST("/getNewBlocks", Controller.GetNewBlocks)
+		api.POST("/login", Controller.Login)
 	}
 
 	//用verifyJwtToken的路由
