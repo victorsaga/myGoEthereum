@@ -15,3 +15,11 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusOK, CommonController.SetDefaultValue(Service.Login(json)))
 	}
 }
+
+func GetNewBlocks(c *gin.Context) {
+	c.JSON(http.StatusOK, CommonController.SetDefaultValue(Service.GetNewBlocks()))
+}
+
+func InitialDbData(c *gin.Context) {
+	c.JSON(http.StatusOK, CommonController.SetDefaultValue(Service.InitialDbData()))
+}

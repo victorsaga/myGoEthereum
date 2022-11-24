@@ -6,9 +6,12 @@ import (
 )
 
 func LogInformation(message string) {
-	log.Print(message)
+	log.Println(message)
 }
 
+func LogFatal(message string) {
+	log.Fatalln("[Error] " + message)
+}
 func FormatErrorMessage(location string, err interface{}) string {
 	return fmt.Sprintln(location, fmt.Sprint(err))
 }

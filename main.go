@@ -29,7 +29,9 @@ func main() {
 	//不用verifyJwtToken的路由
 	api := g.Group("/api")
 	{
-		api.POST("/Login", Controller.Login)
+		api.POST("/login", Controller.Login)
+		api.POST("/initialDbData", Controller.InitialDbData)
+		api.POST("/getNewBlocks", Controller.GetNewBlocks)
 	}
 
 	//用verifyJwtToken的路由
