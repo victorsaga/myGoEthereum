@@ -9,6 +9,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	DescString = "desc"
+)
+
 func GetGormInstance() (db *gorm.DB) {
 
 	db, err := gorm.Open(mysql.Open(getConnectString()), &gorm.Config{})
