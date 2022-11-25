@@ -16,8 +16,10 @@
 		"Database" : "xxx"
 	},
 	"Endpoint":"https://data-seed-prebsc-2-s3.binance.org:8545",	
-	"InitialBlockSize":10000, 
+	"InitialBlockSize":5000, 
 	"MySqlBatchSize":500,
-	"MultipleOfCpuCores":1,
-	"UnstableN":20
+	"MultipleOfCpuCores":2,
+	"UnstableN":20,
+	"InsertBlocksFromRpcSize":1000,
+	"AutoInsertIntervalSeconds":60
 }

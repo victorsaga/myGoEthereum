@@ -32,8 +32,8 @@ func GetTransactionsReceiptLogs(c *gin.Context) {
 }
 
 // /api
-func GetNewBlocks(c *gin.Context) {
-	c.JSON(http.StatusOK, CommonController.SetDefaultValue(Service.GetNewBlocks()))
+func InsertNewBlocks(c *gin.Context) {
+	c.JSON(http.StatusOK, CommonController.SetDefaultValue(Service.InsertNewBlocks()))
 }
 
 func InitialDbData(c *gin.Context) {

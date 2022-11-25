@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"myGoEthereum/Helper/ConfigHelper"
 	"myGoEthereum/Helper/LogHelper"
@@ -80,18 +81,51 @@ func isStableBlock(number int64, dbNumber, unStableNumber *int64) bool {
 	}
 }
 
-func GetNewBlocks() (response CommonModel.ApiResponseWithData) {
+func StartInitialAndAutoInsert() {
+	go func() {
+		defer func() {
+			err := recover()
+			if err != nil {
+				LogHelper.LogFatalAndFormatErrorMessage("StartInitialAndAutoInsert", err)
+				//call chatBot or monitor by Grafana
+			}
+		}()
+
+		InitialDbData()
+		sleepSecond := time.Second * time.Duration(ConfigHelper.GetInt64("AutoInsertIntervalSeconds"))
+		for {
+			time.Sleep(sleepSecond)
+			InsertNewBlocks()
+		}
+	}()
+}
+
+func InsertNewBlocks() (response CommonModel.ApiResponseWithData) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			LogHelper.LogFatalAndFormatErrorMessage("InsertNewBlocks", err)
+		}
+	}()
+
 	dbNumber := Repository.GetDbMaxBlockNumber()
 	begin := dbNumber - ConfigHelper.GetInt64("UnstableN")
 	if begin < 0 {
 		begin = 0
 	}
 	end := getCurrentBlockNumber()
-	InsertBlockFromRpc(uint64(begin), end)
+	InsertBlocksFromRpc(uint64(begin), end)
 	return
 }
 
 func InitialDbData() (response CommonModel.ApiResponseWithData) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			LogHelper.LogFatalAndFormatErrorMessage("InitialDbData", err)
+		}
+	}()
+
 	// truncate table
 	Repository.TruncateBlocksTransactionsReceiptLogs()
 
@@ -101,20 +135,41 @@ func InitialDbData() (response CommonModel.ApiResponseWithData) {
 	if begin < 0 {
 		begin = 0
 	}
-	InsertBlockFromRpc(begin, number)
+	InsertBlocksFromRpc(begin, number)
 	return
 }
 
-func InsertBlockFromRpc(begin, end uint64) {
-	blocks, transactions, receiptLogs := GetBlockFromRpcByNumberRanmge(begin, end) //1009984
-	if len(blocks) > 0 {
-		Repository.InsertOnConflictUpdate(blocks)
+func InsertBlocksFromRpc(begin, end uint64) {
+	begins, ends := sliceRangeNumber(int64(begin), int64(end), ConfigHelper.GetInt64("InsertBlocksFromRpcSize"))
+	loopCount := len(ends) - 1
+	for i := loopCount; i >= 0; i-- { //如查詢的範圍太大為避免server用太多memory，所以會再分批取回 & 寫庫。由大而小，這樣子查詢時能查到最新的資料
+		blocks, transactions, receiptLogs := GetBlockFromRpcByNumberRanmge(uint64(begins[i]), uint64(ends[i]))
+		if len(blocks) > 0 {
+			Repository.InsertOnConflictUpdate(blocks)
+		}
+		if len(transactions) > 0 {
+			Repository.InsertOnConflictUpdate(transactions)
+		}
+		if len(receiptLogs) > 0 {
+			Repository.InsertOnConflictUpdate(receiptLogs)
+		}
 	}
-	if len(transactions) > 0 {
-		Repository.InsertOnConflictUpdate(transactions)
-	}
-	if len(receiptLogs) > 0 {
-		Repository.InsertOnConflictUpdate(receiptLogs)
+	return
+}
+
+func sliceRangeNumber(begin, end, size int64) (begins []int64, ends []int64) {
+	loopCount := int(math.Ceil(float64(end-begin) / float64(size)))
+	beginIndex := int64(0)
+	endIndex := int64(0)
+	for i := 0; i < loopCount; i++ {
+		beginIndex = begin + (int64(i) * size)
+		if i == loopCount-1 {
+			endIndex = end
+		} else {
+			endIndex = beginIndex + size
+		}
+		begins = append(begins, beginIndex)
+		ends = append(ends, endIndex)
 	}
 	return
 }
@@ -204,7 +259,7 @@ func parseBlockHeader(b *types.Block) (result GormModel.Block) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			fmt.Println("[Error]", err)
+			LogHelper.LogFatalAndFormatErrorMessage("parseBlockHeader", err)
 			result = GormModel.Block{}
 		}
 	}()
@@ -249,7 +304,7 @@ func parseTransaction(tx []*types.Transaction, blockNumber *int64) (result []Gor
 	defer func() {
 		err := recover()
 		if err != nil {
-			fmt.Println("[Error]", err)
+			LogHelper.LogFatalAndFormatErrorMessage("parseTransaction", err)
 			result = []GormModel.Transaction{}
 		}
 	}()

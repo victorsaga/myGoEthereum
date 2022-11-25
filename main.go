@@ -36,9 +36,8 @@ func main() {
 
 	api := g.Group("/api")
 	{
-
 		api.POST("/initialDbData", Controller.InitialDbData)
-		api.POST("/getNewBlocks", Controller.GetNewBlocks)
+		api.POST("/insertNewBlocks", Controller.InsertNewBlocks)
 		api.POST("/login", Controller.Login)
 	}
 
@@ -48,6 +47,9 @@ func main() {
 	// 	//帳號相關
 	// 	verifyToken.POST("/Logout", Controller.Logout)
 	// }
+
+	//啟動初始化拉回鍊上資料 & 定期拉回新資料
+	Service.StartInitialAndAutoInsert()
 
 	g.Run(":8080")
 }

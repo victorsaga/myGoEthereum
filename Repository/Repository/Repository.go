@@ -44,12 +44,9 @@ func GetDbMaxBlockNumber() int64 {
 	var result []int64
 	db := MySqlGormHelper.GetGormInstance()
 	db.Model(&GormModel.Block{}).
-		Select(fmt.Sprintf("max(%s) as %s", GormModel.ColumnNameBlocksNumber, GormModel.ColumnNameBlocksNumber)).
+		Select(fmt.Sprintf("ifnull(max(%s),0) as %s", GormModel.ColumnNameBlocksNumber, GormModel.ColumnNameBlocksNumber)).
 		Pluck(GormModel.ColumnNameBlocksNumber, &result)
-	if len(result) > 0 {
-		return result[0]
-	}
-	return 0
+	return result[0]
 }
 
 func TruncateBlocksTransactionsReceiptLogs() {
