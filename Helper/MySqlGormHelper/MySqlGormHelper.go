@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"myGoEthereum/Helper/ConfigHelper"
 	"strings"
+	"sync"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -13,13 +14,23 @@ const (
 	DescString = "desc"
 )
 
-func GetGormInstance() (db *gorm.DB) {
+var gormMutex sync.Mutex
+var db *gorm.DB
 
-	db, err := gorm.Open(mysql.Open(getConnectString()), &gorm.Config{})
-	if err != nil {
-		panic(fmt.Sprint("connection to mysql failed:", err))
+func GetGormInstance() *gorm.DB {
+	if db == nil {
+		gormMutex.Lock()
+		defer gormMutex.Unlock()
+		var err error
+		if db == nil {
+			db, err = gorm.Open(mysql.Open(getConnectString()), &gorm.Config{})
+
+			if err != nil {
+				panic(fmt.Sprint("connection to mysql failed:", err))
+			}
+		}
 	}
-	return
+	return db
 }
 
 func IsNotFound(err error) bool {
